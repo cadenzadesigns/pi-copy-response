@@ -1,0 +1,189 @@
+    async handleCopyCommand() {
+        const text = this.session.getLastAssistantText();
+        if (!text) {
+            this.showError("No agent messages to copy yet.");
+            return;
+        }
+        const countLines = (value) => value.length === 0 ? 1 : value.split("\n").length;
+        const truncatePreview = (value, limit = 70) => {
+            const compact = value.replace(/\s+/g, " ").trim();
+            if (compact.length <= limit)
+                return compact;
+            return `${compact.slice(0, Math.max(0, limit - 1))}…`;
+        };
+        const previewText = (value) => {
+            const firstNonEmpty = value
+                .split("\n")
+                .map((line) => line.trim())
+                .find(Boolean);
+            return truncatePreview(firstNonEmpty ?? "(empty)");
+        };
+        const sanitizeLang = (lang) => {
+            if (!lang)
+                return undefined;
+            const clean = lang.replace(/[^a-zA-Z0-9_+.-]/g, "").trim();
+            return clean.length > 0 ? clean : undefined;
+        };
+        const extractCodeBlocks = (value) => {
+            const lines = value.split("\n");
+            const blocks = [];
+            for (let i = 0; i < lines.length; i++) {
+                const open = lines[i].match(/^(`{3,})(.*)$/);
+                if (!open)
+                    continue;
+                const fence = open[1];
+                const info = open[2].trim();
+                const lang = sanitizeLang(info.split(/\s+/)[0]);
+                const codeLines = [];
+                let closed = false;
+                for (i = i + 1; i < lines.length; i++) {
+                    if (lines[i].startsWith(fence)) {
+                        closed = true;
+                        break;
+                    }
+                    codeLines.push(lines[i]);
+                }
+                if (closed) {
+                    blocks.push({ lang, code: codeLines.join("\n") });
+                }
+            }
+            return blocks;
+        };
+        const codeBlocks = extractCodeBlocks(text);
+        const copyText = async (value, label) => {
+            try {
+                await copyToClipboard(value);
+                this.showStatus(`Copied ${label} to clipboard`);
+            }
+            catch (error) {
+                this.showError(error instanceof Error ? error.message : String(error));
+            }
+        };
+        if (codeBlocks.length === 0) {
+            await copyText(text, "response");
+            return;
+        }
+        const copyTargets = [
+            {
+                value: "full",
+                label: "Full response",
+                description: `${text.length} chars, ${countLines(text)} lines`,
+                content: text,
+            },
+            ...codeBlocks.map((block, index) => ({
+                value: `code-${index + 1}`,
+                label: `Code block ${index + 1}`,
+                description: `${block.lang ?? "plain text"} • ${countLines(block.code)} lines • ${previewText(block.code)}`,
+                content: block.code,
+            })),
+        ];
+        const items = copyTargets.map(({ value, label, description }) => ({ value, label, description }));
+        const targetsByValue = new Map(copyTargets.map((target) => [target.value, target]));
+        const selectedValue = await new Promise((resolve) => {
+            let currentTarget = copyTargets[0];
+            const border = new DynamicBorder();
+            const selectList = new SelectList(items, Math.min(items.length, 10), getSelectListTheme(), {
+                minPrimaryColumnWidth: 12,
+                maxPrimaryColumnWidth: 32,
+            });
+            const padLine = (line, targetWidth) => line + " ".repeat(Math.max(0, targetWidth - visibleWidth(line)));
+            const clipLines = (lines, maxLines) => {
+                if (lines.length <= maxLines)
+                    return lines;
+                const visibleLines = lines.slice(0, Math.max(1, maxLines - 1));
+                const hiddenCount = lines.length - visibleLines.length;
+                visibleLines.push(theme.fg("dim", `… ${hiddenCount} more line${hiddenCount === 1 ? "" : "s"}`));
+                return visibleLines;
+            };
+            const renderPreview = (targetWidth) => {
+                const preview = new Text(currentTarget.content, 1, 0);
+                const maxLines = Math.max(8, this.ui.terminal.rows - 10);
+                return clipLines(preview.render(targetWidth), maxLines);
+            };
+            const picker = {
+                render: (width) => {
+                    const lines = [];
+                    lines.push(...border.render(width));
+                    lines.push(...new Text(theme.fg("accent", theme.bold("Select content to copy")), 1, 0).render(width));
+                    lines.push(...new Text(theme.fg("dim", "Preview shows the exact clipboard contents (wrapped for display)."), 1, 0).render(width));
+                    if (width >= 96) {
+                        const gutter = theme.fg("border", " │ ");
+                        const gutterWidth = visibleWidth(gutter);
+                        let listWidth = Math.max(28, Math.min(40, Math.floor((width - gutterWidth) * 0.34)));
+                        let previewWidth = Math.max(24, width - gutterWidth - listWidth);
+                        if (listWidth + gutterWidth + previewWidth > width) {
+                            previewWidth = Math.max(24, width - gutterWidth - listWidth);
+                        }
+                        const choicesHeader = theme.fg("accent", theme.bold("Choices"));
+                        const previewHeader = theme.fg("accent", theme.bold(`Preview — ${currentTarget.label}`));
+                        lines.push(padLine(choicesHeader, listWidth) + gutter + padLine(previewHeader, previewWidth));
+                        const listLines = selectList.render(listWidth);
+                        const previewLines = renderPreview(previewWidth);
+                        const bodyHeight = Math.max(listLines.length, previewLines.length);
+                        for (let i = 0; i < bodyHeight; i++) {
+                            const left = listLines[i] ?? "";
+                            const right = previewLines[i] ?? "";
+                            lines.push(padLine(left, listWidth) + gutter + padLine(right, previewWidth));
+                        }
+                    }
+                    else {
+                        lines.push(...new Text(theme.fg("accent", theme.bold("Choices")), 1, 0).render(width));
+                        lines.push(...selectList.render(width));
+                        lines.push(...border.render(width));
+                        lines.push(...new Text(theme.fg("accent", theme.bold(`Preview — ${currentTarget.label}`)), 1, 0).render(width));
+                        lines.push(...renderPreview(width));
+                    }
+                    lines.push(...new Text(theme.fg("dim", "  ↑/↓ to change preview · Enter to copy · Esc to cancel"), 0, 0).render(width));
+                    lines.push(...border.render(width));
+                    return lines;
+                },
+                invalidate: () => {
+                    border.invalidate();
+                    selectList.invalidate();
+                },
+                handleInput: (data) => {
+                    selectList.handleInput(data);
+                    this.ui.requestRender();
+                },
+            };
+            const restoreEditor = () => {
+                this.editorContainer.clear();
+                this.editorContainer.addChild(this.editor);
+                this.ui.setFocus(this.editor);
+                this.ui.requestRender();
+            };
+            const initialSelection = selectList.getSelectedItem();
+            if (initialSelection) {
+                currentTarget = targetsByValue.get(initialSelection.value) ?? currentTarget;
+            }
+            selectList.onSelectionChange = (item) => {
+                currentTarget = targetsByValue.get(item.value) ?? currentTarget;
+                this.ui.requestRender();
+            };
+            selectList.onSelect = (item) => {
+                restoreEditor();
+                resolve(item.value);
+            };
+            selectList.onCancel = () => {
+                restoreEditor();
+                resolve(null);
+            };
+            this.editorContainer.clear();
+            this.editorContainer.addChild(picker);
+            this.ui.setFocus(picker);
+            this.ui.requestRender();
+        });
+        if (!selectedValue) {
+            this.showStatus("Copy cancelled");
+            return;
+        }
+        const selectedTarget = targetsByValue.get(String(selectedValue));
+        if (!selectedTarget) {
+            this.showError("Copy target not found.");
+            return;
+        }
+        const label = selectedTarget.value === "full"
+            ? "response"
+            : `code block ${Number(String(selectedTarget.value).replace("code-", ""))}`;
+        await copyText(selectedTarget.content, label);
+    }

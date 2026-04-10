@@ -1,0 +1,20 @@
+{
+  "name": "pi-copy-response",
+  "version": "0.3.0",
+  "description": "Copy the latest assistant response in Pi with a code-block picker and live preview",
+  "type": "module",
+  "keywords": ["pi-package", "pi", "clipboard", "copy", "response"],
+  "files": [
+    "extensions",
+    "lib",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": ["./extensions/*.js"]
+  },
+  "license": "MIT"
+}
