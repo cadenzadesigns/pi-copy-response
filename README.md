@@ -4,6 +4,11 @@ Adds a Pi slash command:
 
 - `/copy-response`
 
+It also supports subcommands:
+- `/copy-response apply`
+- `/copy-response restore`
+- `/copy-response status`
+
 It copies the latest assistant response.
 
 If that response contains fenced code blocks, `/copy-response` opens a picker with:
@@ -42,37 +47,36 @@ In Pi, run:
 /copy-response
 ```
 
-This is the default, package-friendly way to use the extension.
+This copies the latest assistant response, with a picker if fenced code blocks are present.
 
-## Optional: make built-in `/copy` use the same behavior
+## Optional override management
 
-If you personally want Pi's built-in `/copy` command to use the same picker and live preview as `/copy-response`, the package includes an optional local override.
+If you personally want Pi's built-in `/copy` command to use the same picker and live preview as `/copy-response`, use the built-in override subcommands.
 
-After installing the package, run:
+Apply the override:
 
 ```text
-/copy-response-apply
+/copy-response apply
 ```
 
-Then fully restart Pi.
+Check override status:
+
+```text
+/copy-response status
+```
+
+Restore original built-in `/copy`:
+
+```text
+/copy-response restore
+```
+
+After applying or restoring, fully restart Pi.
 
 After restart:
-- `/copy` uses the enhanced picker + live preview
-- `/copy-response` still remains available
-
-To check whether your local Pi install is currently overridden:
-
-```text
-/copy-response-status
-```
-
-To restore Pi's original built-in `/copy` later:
-
-```text
-/copy-response-restore
-```
-
-Then restart Pi again.
+- `/copy` uses the enhanced picker if applied
+- `/copy` returns to stock behavior if restored
+- `/copy-response` always remains available
 
 ## Why the override is optional
 
@@ -86,7 +90,7 @@ Because of that, this package offers two modes:
    - best for shared/package use
 
 2. **Personal override mode**
-   - run `/copy-response-apply`
+   - run `/copy-response apply`
    - patches your installed Pi locally so `/copy` uses the same behavior
    - best if you want the enhanced UX on your own machine
 

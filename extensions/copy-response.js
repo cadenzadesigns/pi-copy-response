@@ -7,6 +7,23 @@ import { applyPatch, getPatchStatus, restorePatch } from "../lib/patch-pi-copy.j
 
 const CLIPBOARD_COMMAND_TIMEOUT_MS = 5000;
 const LABEL_PREVIEW_LIMIT = 70;
+const SUBCOMMANDS = [
+  {
+    value: "apply",
+    label: "apply",
+    description: "Make built-in /copy use the same picker and live preview",
+  },
+  {
+    value: "restore",
+    label: "restore",
+    description: "Restore Pi's original built-in /copy command",
+  },
+  {
+    value: "status",
+    label: "status",
+    description: "Show whether built-in /copy is currently overridden",
+  },
+];
 
 const extractTextBlocks = (content) => {
   if (typeof content === "string") {
@@ -330,53 +347,66 @@ const copyAssistantResponse = async (ctx) => {
 
 export default function copyResponseExtension(pi) {
   pi.registerCommand("copy-response", {
-    description: "Copy the latest assistant response, or pick a code block to copy",
-    handler: async (_args, ctx) => {
-      await copyAssistantResponse(ctx);
+    description: "Copy the latest assistant response, or manage the optional /copy override",
+    getArgumentCompletions: (prefix) => {
+      const trimmedPrefix = prefix.trim().toLowerCase();
+      const matches = SUBCOMMANDS.filter((item) => item.value.startsWith(trimmedPrefix));
+      return matches.length > 0 ? matches : null;
     },
-  });
+    handler: async (args, ctx) => {
+      const subcommand = args.trim().toLowerCase();
 
-  pi.registerCommand("copy-response-status", {
-    description: "Show whether Pi's built-in /copy is using the enhanced picker",
-    handler: async (_args, ctx) => {
-      try {
-        const status = getPatchStatus();
-        const backup = status.backupExists ? "backup present" : "no backup found";
-        ctx.ui.notify(
-          [`/copy status: ${status.status}`, backup, `interactive-mode: ${status.interactiveModePath}`].join("\n"),
-          status.status === "patched" ? "success" : "info",
-        );
-      } catch (error) {
-        ctx.ui.notify(`Failed to read /copy override status: ${error instanceof Error ? error.message : String(error)}`, "error");
+      if (!subcommand) {
+        await copyAssistantResponse(ctx);
+        return;
       }
-    },
-  });
 
-  pi.registerCommand("copy-response-apply", {
-    description: "Make Pi's built-in /copy use the same picker and live preview",
-    handler: async (_args, ctx) => {
-      try {
-        const result = applyPatch();
-        if (result.alreadyPatched) {
-          ctx.ui.notify("/copy is already using the enhanced picker. Restart Pi if you still see the old behavior.", "success");
-        } else {
-          ctx.ui.notify(`Enhanced /copy installed. Restart Pi to use it.\nPatched: ${result.interactiveModePath}`, "success");
+      if (subcommand === "status") {
+        try {
+          const status = getPatchStatus();
+          const backup = status.backupExists ? "backup present" : "no backup found";
+          ctx.ui.notify(
+            [`/copy status: ${status.status}`, backup, `interactive-mode: ${status.interactiveModePath}`].join("\n"),
+            status.status === "patched" ? "success" : "info",
+          );
+        } catch (error) {
+          ctx.ui.notify(`Failed to read /copy override status: ${error instanceof Error ? error.message : String(error)}`, "error");
         }
-      } catch (error) {
-        ctx.ui.notify(`Failed to override /copy: ${error instanceof Error ? error.message : String(error)}`, "error");
+        return;
       }
-    },
-  });
 
-  pi.registerCommand("copy-response-restore", {
-    description: "Restore Pi's original built-in /copy command",
-    handler: async (_args, ctx) => {
-      try {
-        const result = restorePatch();
-        ctx.ui.notify(`Original /copy restored. Restart Pi to use it.\nRestored from: ${result.backupPath}`, "success");
-      } catch (error) {
-        ctx.ui.notify(`Failed to restore /copy: ${error instanceof Error ? error.message : String(error)}`, "error");
+      if (subcommand === "apply") {
+        try {
+          const result = applyPatch();
+          if (result.alreadyPatched) {
+            ctx.ui.notify("/copy is already using the enhanced picker. Restart Pi if you still see the old behavior.", "success");
+          } else {
+            ctx.ui.notify(`Enhanced /copy installed. Restart Pi to use it.\nPatched: ${result.interactiveModePath}`, "success");
+          }
+        } catch (error) {
+          ctx.ui.notify(`Failed to override /copy: ${error instanceof Error ? error.message : String(error)}`, "error");
+        }
+        return;
       }
+
+      if (subcommand === "restore") {
+        try {
+          const result = restorePatch();
+          ctx.ui.notify(`Original /copy restored. Restart Pi to use it.\nRestored from: ${result.backupPath}`, "success");
+        } catch (error) {
+          ctx.ui.notify(`Failed to restore /copy: ${error instanceof Error ? error.message : String(error)}`, "error");
+        }
+        return;
+      }
+
+      const usage = [
+        "Usage:",
+        "  /copy-response",
+        "  /copy-response apply",
+        "  /copy-response restore",
+        "  /copy-response status",
+      ].join("\n");
+      ctx.ui.notify(`Unknown subcommand: ${subcommand}\n\n${usage}`, "warning");
     },
   });
 }
