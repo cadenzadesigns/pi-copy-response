@@ -1,6 +1,6 @@
 {
   "name": "pi-copy-response",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Copy the latest assistant response in Pi with a code-block picker and live preview",
   "type": "module",
   "repository": {
@@ -11,7 +11,19 @@
   "bugs": {
     "url": "https://github.com/cadenzadesigns/pi-copy-response/issues"
   },
-  "keywords": ["pi-package", "pi", "clipboard", "copy", "response"],
+  "keywords": [
+    "pi-package",
+    "pi",
+    "clipboard",
+    "copy",
+    "response"
+  ],
+  "scripts": {
+    "clean": "echo 'nothing to clean'",
+    "build": "echo 'nothing to build'",
+    "check": "node --test test/*.test.js",
+    "test": "node --test test/*.test.js"
+  },
   "files": [
     "extensions",
     "lib",
@@ -21,8 +33,14 @@
     "@mariozechner/pi-coding-agent": "*",
     "@mariozechner/pi-tui": "*"
   },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.66.1",
+    "@mariozechner/pi-tui": "^0.66.1"
+  },
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": [
+      "./extensions"
+    ]
   },
   "license": "MIT"
 }
