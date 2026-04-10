@@ -31,7 +31,7 @@ pi install npm:pi-copy-response
 ### git
 
 ```bash
-pi install git:github.com/you/pi-copy-response
+pi install git:github.com/cadenzadesigns/pi-copy-response
 ```
 
 ## Standard usage
@@ -95,6 +95,10 @@ Because of that, this package offers two modes:
 - no fenced code blocks: copies full latest assistant response immediately
 - fenced code blocks present: opens a picker with live preview
 - in non-UI contexts: copies the full response
+
+## Repository
+
+- GitHub: https://github.com/cadenzadesigns/pi-copy-response
 
 ## Notes
 
