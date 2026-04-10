@@ -1,5 +1,16 @@
 # pi-copy-response
 
+[![npm version](https://img.shields.io/npm/v/pi-copy-response)](https://www.npmjs.com/package/pi-copy-response)
+[![npm downloads](https://img.shields.io/npm/dm/pi-copy-response)](https://www.npmjs.com/package/pi-copy-response)
+
+A Pi package that copies the latest assistant response with a code-block picker, live preview, and optional built-in `/copy` override.
+
+## Quick install
+
+```bash
+pi install npm:pi-copy-response
+```
+
 Adds a Pi slash command:
 
 - `/copy-response`
@@ -20,6 +31,11 @@ The picker includes a live preview of the currently highlighted item, so you can
 If the latest assistant response has no fenced code blocks, `/copy-response` copies the full response immediately.
 
 ## Install
+
+Package links:
+- npm: https://www.npmjs.com/package/pi-copy-response
+- GitHub: https://github.com/cadenzadesigns/pi-copy-response
+
 
 ### Local path
 
@@ -99,10 +115,6 @@ Because of that, this package offers two modes:
 - no fenced code blocks: copies full latest assistant response immediately
 - fenced code blocks present: opens a picker with live preview
 - in non-UI contexts: copies the full response
-
-## Repository
-
-- GitHub: https://github.com/cadenzadesigns/pi-copy-response
 
 ## Notes
 

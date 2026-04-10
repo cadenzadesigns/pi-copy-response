@@ -1,7 +1,7 @@
 {
   "name": "pi-copy-response",
-  "version": "0.3.3",
-  "description": "Copy the latest assistant response in Pi with a code-block picker and live preview",
+  "version": "0.3.4",
+  "description": "Pi package for copying the latest assistant response with a code-block picker, live preview, and optional /copy override",
   "type": "module",
   "repository": {
     "type": "git",
@@ -14,9 +14,12 @@
   "keywords": [
     "pi-package",
     "pi",
+    "pi-extension",
     "clipboard",
     "copy",
-    "response"
+    "assistant-response",
+    "terminal-ui",
+    "tui"
   ],
   "scripts": {
     "clean": "echo 'nothing to clean'",
@@ -40,7 +43,8 @@
   "pi": {
     "extensions": [
       "./extensions"
-    ]
+    ],
+    "image": "https://raw.githubusercontent.com/cadenzadesigns/pi-copy-response/main/assets/preview.png"
   },
   "license": "MIT"
 }
