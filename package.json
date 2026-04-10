@@ -1,6 +1,6 @@
 {
   "name": "pi-copy-response",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Pi package for copying the latest assistant response with a code-block picker, live preview, and optional /copy override",
   "type": "module",
   "repository": {
